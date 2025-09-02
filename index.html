@@ -57,7 +57,7 @@
                         </tr>
                     </thead>
                     <tbody id="aforadores-body" class="text-gray-900">
-                        <!-- Table rows will be inserted by JavaScript -->
+                        <!-- Las filas de la tabla se insertarán con JavaScript -->
                     </tbody>
                 </table>
             </div>
@@ -73,7 +73,7 @@
                 <div class="space-y-4">
                     <h3 class="text-xl font-semibold text-gray-800">Depósitos</h3>
                     <div id="depositos-list" class="space-y-2">
-                        <!-- Depósito inputs will be added here -->
+                        <!-- Los inputs de depósito se agregarán aquí -->
                     </div>
                     <button onclick="addDeposito()" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-semibold shadow hover:bg-gray-300 transition-colors w-full">+ Agregar depósito</button>
                     <p class="font-bold text-gray-800 text-lg mt-4">TOTAL DEPÓSITOS: <span id="total-depositos-display">0.00</span></p>
@@ -113,7 +113,7 @@
                         </tr>
                     </thead>
                     <tbody id="inventory-body" class="text-gray-900">
-                        <!-- Inventory rows will be inserted by JavaScript -->
+                        <!-- Las filas de inventario se insertarán con JavaScript -->
                     </tbody>
                 </table>
             </div>
@@ -134,137 +134,84 @@
         </footer>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        // Set log level to debug for Firestore
-        setLogLevel('Debug');
+    <script>
+        // Array para almacenar los datos del inventario localmente
+        let inventoryData = [];
 
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        // Función para renderizar la tabla de inventario
+        function renderInventory() {
+            const inventoryBody = document.getElementById('inventory-body');
+            inventoryBody.innerHTML = ''; // Limpia la tabla
+            let totalVentasInventario = 0;
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        
-        let userId;
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                userId = user.uid;
-                startListeners();
-            } else {
-                try {
-                    if (typeof __initial_auth_token !== 'undefined') {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                } catch (error) {
-                    console.error("Firebase Auth Error:", error);
-                }
-            }
-        });
-
-        function startListeners() {
-            // Firestore collection reference
-            const inventoryCollection = collection(db, `artifacts/${appId}/users/${userId}/inventory`);
-
-            // Listen for real-time updates
-            onSnapshot(inventoryCollection, (snapshot) => {
-                const inventoryBody = document.getElementById('inventory-body');
-                inventoryBody.innerHTML = '';
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const row = document.createElement('tr');
-                    row.classList.add('bg-white', 'hover:bg-gray-50', 'transition-colors');
-                    row.innerHTML = `
-                        <td class="p-2">${data.name}</td>
-                        <td class="p-2">${data.stock}</td>
-                        <td class="p-2"><input type="number" value="${data.sold || 0}" class="sold-input w-20 sm:w-28 border-b-2 border-gray-300 focus:border-green-500 focus:outline-none"></td>
-                        <td class="p-2">${(data.sold * data.price).toFixed(2)}</td>
-                        <td class="p-2">
-                            <button onclick="updateStock('${doc.id}', 1)" class="text-green-500 hover:text-green-700 font-bold px-2">+</button>
-                            <button onclick="updateStock('${doc.id}', -1)" class="text-red-500 hover:text-red-700 font-bold px-2">-</button>
-                            <button onclick="deleteProduct('${doc.id}')" class="text-red-500 hover:text-red-700 font-bold px-2">X</button>
-                        </td>
-                    `;
-                    inventoryBody.appendChild(row);
-                });
+            inventoryData.forEach((product, index) => {
+                const subtotal = product.sold * product.price;
+                totalVentasInventario += subtotal;
+                const row = document.createElement('tr');
+                row.classList.add('bg-white', 'hover:bg-gray-50', 'transition-colors');
+                row.innerHTML = `
+                    <td class="p-2">${product.name}</td>
+                    <td class="p-2">${product.stock}</td>
+                    <td class="p-2"><input type="number" value="${product.sold}" oninput="updateSold(${index}, this.value)" class="sold-input w-20 sm:w-28 border-b-2 border-gray-300 focus:border-green-500 focus:outline-none"></td>
+                    <td class="p-2">${subtotal.toFixed(2)}</td>
+                    <td class="p-2">
+                        <button onclick="deleteProduct(${index})" class="text-red-500 hover:text-red-700 font-bold px-2">X</button>
+                    </td>
+                `;
+                inventoryBody.appendChild(row);
             });
-
-            // Add listener for sold inputs
-            document.getElementById('inventory-body').addEventListener('input', async (e) => {
-                const input = e.target;
-                if (input.classList.contains('sold-input')) {
-                    const row = input.closest('tr');
-                    const docId = row.querySelector('button[onclick^="updateStock"]').onclick.toString().match(/'([^']+)'/)[1];
-                    const soldValue = parseInt(input.value) || 0;
-                    
-                    const docRef = doc(db, `artifacts/${appId}/users/${userId}/inventory`, docId);
-                    try {
-                        await updateDoc(docRef, { sold: soldValue });
-                    } catch (error) {
-                        console.error("Error updating document:", error);
-                    }
-                }
-            });
+            // Actualiza el total de ventas del inventario en el input de ventas (opcional)
+            document.getElementById('ventas-input').value = totalVentasInventario.toFixed(2);
         }
 
-        async function addProduct() {
+        // Función para agregar un nuevo producto
+        function addProduct() {
             const productName = document.getElementById('product-name-input').value;
             const productStock = parseInt(document.getElementById('product-stock-input').value);
             const productPrice = parseFloat(document.getElementById('product-price-input').value);
             
             if (!productName || isNaN(productStock) || isNaN(productPrice)) {
-                alert('Por favor, ingresa un nombre, stock y precio válidos.');
+                // Reemplazado alert con console.log para evitar problemas en el iframe
+                console.log('Por favor, ingresa un nombre, stock y precio válidos.');
                 return;
             }
 
-            try {
-                const inventoryCollection = collection(db, `artifacts/${appId}/users/${userId}/inventory`);
-                await addDoc(inventoryCollection, {
-                    name: productName,
-                    stock: productStock,
-                    price: productPrice,
-                    sold: 0
-                });
-                document.getElementById('product-name-input').value = '';
-                document.getElementById('product-stock-input').value = '';
-                document.getElementById('product-price-input').value = '';
-            } catch (e) {
-                console.error("Error adding document: ", e);
-            }
+            // Agrega el nuevo producto al array
+            inventoryData.push({
+                name: productName,
+                stock: productStock,
+                price: productPrice,
+                sold: 0
+            });
+
+            // Limpia los inputs
+            document.getElementById('product-name-input').value = '';
+            document.getElementById('product-stock-input').value = '';
+            document.getElementById('product-price-input').value = '';
+
+            // Renderiza la tabla de nuevo para mostrar el producto
+            renderInventory();
         }
-        window.addProduct = addProduct;
 
-        async function updateStock(docId, change) {
-            const docRef = doc(db, `artifacts/${appId}/users/${userId}/inventory`, docId);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-                const currentStock = docSnap.data().stock;
-                await updateDoc(docRef, { stock: currentStock + change });
-            }
+        // Función para actualizar la cantidad vendida de un producto
+        function updateSold(index, value) {
+            const soldValue = parseInt(value) || 0;
+            inventoryData[index].sold = soldValue;
+            renderInventory();
         }
-        window.updateStock = updateStock;
 
-        async function deleteProduct(docId) {
-            const docRef = doc(db, `artifacts/${appId}/users/${userId}/inventory`, docId);
-            try {
-                await deleteDoc(docRef);
-            } catch (error) {
-                console.error("Error deleting document:", error);
-            }
+        // Función para eliminar un producto
+        function deleteProduct(index) {
+            // Elimina el producto del array
+            inventoryData.splice(index, 1);
+            // Renderiza la tabla de nuevo
+            renderInventory();
         }
-        window.deleteProduct = deleteProduct;
 
-
+        // Surtidores y Depósitos (código original sin cambios)
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('fecha').valueAsDate = new Date();
-            addRow(); // Create a default row
+            addRow();
         });
 
         document.getElementById('aforadores-body').addEventListener('input', (e) => {
@@ -396,10 +343,14 @@
             const excelTextarea = document.getElementById('excel-textarea');
             excelTextarea.select();
             document.execCommand('copy');
-            // Replaced alert with a simple console log
             console.log('¡Texto copiado al portapapeles!');
         }
         window.copiarTexto = copiarTexto;
+
+        // Hace que las funciones sean accesibles globalmente desde el HTML
+        window.addProduct = addProduct;
+        window.updateSold = updateSold;
+        window.deleteProduct = deleteProduct;
 
     </script>
 </body>
