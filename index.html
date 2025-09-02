@@ -332,6 +332,17 @@
             texto += `TOTAL DEPÓSITOS\t${totalDepositos}\n`;
             texto += `VENTAS\t${ventas}\n`;
 
+            // Agregar el detalle de inventario
+            texto += `\nInventario de Mercadería\n`;
+            texto += `Producto\tStock Inicial\tVendido\tPrecio Unitario\tSubtotal\n`;
+            let totalVentasInventario = 0;
+            inventoryData.forEach(product => {
+                const subtotal = product.sold * product.price;
+                totalVentasInventario += subtotal;
+                texto += `${product.name}\t${product.stock}\t${product.sold}\t${product.price.toFixed(2)}\t${subtotal.toFixed(2)}\n`;
+            });
+            texto += `TOTAL VENTAS INVENTARIO\t\t\t\t${totalVentasInventario.toFixed(2)}\n`;
+
             const excelTextarea = document.getElementById('excel-textarea');
             excelTextarea.value = texto;
             
