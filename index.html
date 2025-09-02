@@ -25,7 +25,7 @@
     <div class="container bg-white shadow-xl rounded-2xl p-6 md:p-10 space-y-8">
         <header class="text-center space-y-2">
             <h1 class="text-4xl font-bold text-green-700">SENDA VERDE</h1>
-            <p class="text-lg text-gray-600">Gestión de Surtidores GNC</p>
+            <p class="text-lg text-gray-600">Gestión de Turnos GNC</p>
         </header>
 
         <section id="form-section" class="space-y-6">
@@ -86,6 +86,40 @@
             
         </section>
 
+        <hr class="my-8 border-gray-300">
+
+        <!-- Sección de control de inventario -->
+        <section id="inventory-section" class="space-y-6">
+            <h2 class="text-3xl font-bold text-gray-800 text-center">Inventario de Mercadería</h2>
+            
+            <div class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
+                <input type="text" id="product-name-input" placeholder="Nombre del producto" class="input-field w-full md:w-auto border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                <input type="number" id="product-stock-input" placeholder="Stock inicial" class="input-field w-full md:w-auto border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                <input type="number" id="product-price-input" placeholder="Precio" class="input-field w-full md:w-auto border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                <button onclick="addProduct()" class="button bg-green-600 text-white font-semibold py-2 px-4 shadow hover:bg-green-700 transition-colors">
+                    Agregar producto
+                </button>
+            </div>
+
+            <div class="table-container bg-white rounded-lg shadow-inner p-4">
+                <table id="inventory-table" class="w-full text-left table-auto border-separate border-spacing-y-2">
+                    <thead class="text-gray-500 uppercase text-xs">
+                        <tr>
+                            <th class="p-2">Producto</th>
+                            <th class="p-2">Stock</th>
+                            <th class="p-2">Vendido</th>
+                            <th class="p-2">Subtotal</th>
+                            <th class="p-2">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventory-body" class="text-gray-900">
+                        <!-- Inventory rows will be inserted by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            
+        </section>
+
         <footer class="mt-8 space-y-4">
             <button onclick="generarTextoParaExcel()" class="w-full button bg-blue-600 text-white font-bold py-3 shadow-lg hover:bg-blue-700 transition-colors">
                 Generar para Excel
@@ -100,14 +134,139 @@
         </footer>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('fecha').valueAsDate = new Date();
-            // Create a default row
-            addRow();
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Set log level to debug for Firestore
+        setLogLevel('Debug');
+
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        let userId;
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                startListeners();
+            } else {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined') {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Firebase Auth Error:", error);
+                }
+            }
         });
 
-        // Event listener for aforador inputs to calculate total
+        function startListeners() {
+            // Firestore collection reference
+            const inventoryCollection = collection(db, `artifacts/${appId}/users/${userId}/inventory`);
+
+            // Listen for real-time updates
+            onSnapshot(inventoryCollection, (snapshot) => {
+                const inventoryBody = document.getElementById('inventory-body');
+                inventoryBody.innerHTML = '';
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const row = document.createElement('tr');
+                    row.classList.add('bg-white', 'hover:bg-gray-50', 'transition-colors');
+                    row.innerHTML = `
+                        <td class="p-2">${data.name}</td>
+                        <td class="p-2">${data.stock}</td>
+                        <td class="p-2"><input type="number" value="${data.sold || 0}" class="sold-input w-20 sm:w-28 border-b-2 border-gray-300 focus:border-green-500 focus:outline-none"></td>
+                        <td class="p-2">${(data.sold * data.price).toFixed(2)}</td>
+                        <td class="p-2">
+                            <button onclick="updateStock('${doc.id}', 1)" class="text-green-500 hover:text-green-700 font-bold px-2">+</button>
+                            <button onclick="updateStock('${doc.id}', -1)" class="text-red-500 hover:text-red-700 font-bold px-2">-</button>
+                            <button onclick="deleteProduct('${doc.id}')" class="text-red-500 hover:text-red-700 font-bold px-2">X</button>
+                        </td>
+                    `;
+                    inventoryBody.appendChild(row);
+                });
+            });
+
+            // Add listener for sold inputs
+            document.getElementById('inventory-body').addEventListener('input', async (e) => {
+                const input = e.target;
+                if (input.classList.contains('sold-input')) {
+                    const row = input.closest('tr');
+                    const docId = row.querySelector('button[onclick^="updateStock"]').onclick.toString().match(/'([^']+)'/)[1];
+                    const soldValue = parseInt(input.value) || 0;
+                    
+                    const docRef = doc(db, `artifacts/${appId}/users/${userId}/inventory`, docId);
+                    try {
+                        await updateDoc(docRef, { sold: soldValue });
+                    } catch (error) {
+                        console.error("Error updating document:", error);
+                    }
+                }
+            });
+        }
+
+        async function addProduct() {
+            const productName = document.getElementById('product-name-input').value;
+            const productStock = parseInt(document.getElementById('product-stock-input').value);
+            const productPrice = parseFloat(document.getElementById('product-price-input').value);
+            
+            if (!productName || isNaN(productStock) || isNaN(productPrice)) {
+                alert('Por favor, ingresa un nombre, stock y precio válidos.');
+                return;
+            }
+
+            try {
+                const inventoryCollection = collection(db, `artifacts/${appId}/users/${userId}/inventory`);
+                await addDoc(inventoryCollection, {
+                    name: productName,
+                    stock: productStock,
+                    price: productPrice,
+                    sold: 0
+                });
+                document.getElementById('product-name-input').value = '';
+                document.getElementById('product-stock-input').value = '';
+                document.getElementById('product-price-input').value = '';
+            } catch (e) {
+                console.error("Error adding document: ", e);
+            }
+        }
+        window.addProduct = addProduct;
+
+        async function updateStock(docId, change) {
+            const docRef = doc(db, `artifacts/${appId}/users/${userId}/inventory`, docId);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                const currentStock = docSnap.data().stock;
+                await updateDoc(docRef, { stock: currentStock + change });
+            }
+        }
+        window.updateStock = updateStock;
+
+        async function deleteProduct(docId) {
+            const docRef = doc(db, `artifacts/${appId}/users/${userId}/inventory`, docId);
+            try {
+                await deleteDoc(docRef);
+            } catch (error) {
+                console.error("Error deleting document:", error);
+            }
+        }
+        window.deleteProduct = deleteProduct;
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('fecha').valueAsDate = new Date();
+            addRow(); // Create a default row
+        });
+
         document.getElementById('aforadores-body').addEventListener('input', (e) => {
             if (e.target.classList.contains('input-aforo')) {
                 calculateTotalAforo(e.target);
@@ -132,26 +291,22 @@
                 <td class="p-2"><input type="number" placeholder="Total" readonly class="input-aforo w-20 sm:w-28 border-b-2 border-gray-300 focus:outline-none bg-gray-100"></td>
             `;
             tableBody.appendChild(newRow);
-            
-            // Add event listeners for the new row
             const inputs = newRow.querySelectorAll('input.input-aforo');
             inputs.forEach(input => {
                 input.addEventListener('input', () => calculateTotalAforo(input));
             });
         }
+        window.addRow = addRow;
 
         function calculateTotalAforo(input) {
             const row = input.closest('tr');
             const inicio = parseFloat(row.cells[1].querySelector('input').value) || 0;
             const salida = parseFloat(row.cells[2].querySelector('input').value) || 0;
             const precio = parseFloat(row.cells[4].querySelector('input').value) || 0;
-
             const metros = salida - inicio;
             const total = metros * precio;
-
             row.cells[3].querySelector('input').value = metros.toFixed(2);
             row.cells[5].querySelector('input').value = total.toFixed(2);
-            
             calculateTotalGeneral();
         }
         
@@ -176,12 +331,14 @@
             `;
             depositosList.appendChild(newDeposito);
         }
+        window.addDeposito = addDeposito;
 
         function removeDeposito(button) {
             const depositoDiv = button.parentElement;
             depositoDiv.remove();
             calculateTotalDepositos();
         }
+        window.removeDeposito = removeDeposito;
 
         function calculateTotalDepositos() {
             const depositos = document.querySelectorAll('.deposito-input');
@@ -233,13 +390,17 @@
             
             document.getElementById('excel-output').classList.remove('hidden');
         }
+        window.generarTextoParaExcel = generarTextoParaExcel;
 
         function copiarTexto() {
             const excelTextarea = document.getElementById('excel-textarea');
             excelTextarea.select();
             document.execCommand('copy');
-            alert('¡Texto copiado al portapapeles!');
+            // Replaced alert with a simple console log
+            console.log('¡Texto copiado al portapapeles!');
         }
+        window.copiarTexto = copiarTexto;
+
     </script>
 </body>
 </html>
