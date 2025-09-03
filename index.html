@@ -22,6 +22,9 @@
         #printable-content {
             display: none;
         }
+        .admin-panel {
+            display: none;
+        }
         @media print {
             body > *:not(#printable-content) {
                 display: none !important;
@@ -35,6 +38,7 @@
     </style>
 </head>
 <body class="bg-gray-100 flex justify-center items-start min-h-screen py-8 px-4">
+    <!-- Main Content for the user -->
     <div id="main-content" class="container bg-white shadow-xl rounded-2xl p-6 md:p-10 space-y-8">
         <header class="text-center space-y-2">
             <h1 class="text-4xl font-bold text-green-700">SENDA VERDE</h1>
@@ -57,6 +61,14 @@
                 </div>
             </div>
 
+            <div class="flex justify-between items-center mt-4">
+                <button onclick="loadReportByDate()" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-semibold shadow hover:bg-gray-300 transition-colors">
+                    Cargar Reporte
+                </button>
+                <div class="text-sm text-gray-500" id="report-status"></div>
+            </div>
+
+            <h3 class="text-xl font-semibold text-gray-800 pt-4">Surtidores</h3>
             <div class="table-container bg-white rounded-lg shadow-inner p-4">
                 <table id="aforadores-table" class="w-full text-left table-auto border-separate border-spacing-y-2">
                     <thead class="text-gray-500 uppercase text-xs">
@@ -76,13 +88,21 @@
             </div>
             
             <div class="flex justify-between items-center py-4">
-                <div class="font-bold text-gray-800 text-lg">TOTAL GENERAL: <span id="total-general-display">0.00</span></div>
+                <div class="font-bold text-gray-800 text-lg">TOTAL GNC: <span id="total-general-display">0.00</span></div>
                 <button onclick="addRow()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold shadow hover:bg-green-700 transition-colors">
                     + Agregar surtidor
                 </button>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <h3 class="text-xl font-semibold text-gray-800">Ventas (Tienda)</h3>
+                    <div id="sales-list" class="space-y-2">
+                        <!-- Los inputs de venta se agregarán aquí -->
+                    </div>
+                    <button onclick="addSaleRow()" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-semibold shadow hover:bg-gray-300 transition-colors w-full">+ Agregar producto</button>
+                    <p class="font-bold text-gray-800 text-lg mt-4">TOTAL VENTAS: <span id="total-sales-display">0.00</span></p>
+                </div>
                 <div class="space-y-4">
                     <h3 class="text-xl font-semibold text-gray-800">Depósitos</h3>
                     <div id="depositos-list" class="space-y-2">
@@ -91,41 +111,295 @@
                     <button onclick="addDeposito()" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-semibold shadow hover:bg-gray-300 transition-colors w-full">+ Agregar depósito</button>
                     <p class="font-bold text-gray-800 text-lg mt-4">TOTAL DEPÓSITOS: <span id="total-depositos-display">0.00</span></p>
                 </div>
-                <div class="space-y-4">
-                    <h3 class="text-xl font-semibold text-gray-800">Ventas</h3>
-                    <input type="number" id="ventas-input" placeholder="Total de ventas" class="input-field block w-full border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+            </div>
+
+            <div class="mt-8 space-y-4 text-center">
+                <div class="font-bold text-xl text-gray-800">
+                    <span id="final-total-text">Total Recaudado: </span> <span id="final-total-display">0.00</span>
+                </div>
+                <div class="font-bold text-xl" id="diferencia-text">
+                    Diferencia: <span id="diferencia-display">0.00</span>
                 </div>
             </div>
-            
         </section>
 
         <footer class="mt-8 space-y-4">
+            <button onclick="saveReport()" class="w-full button bg-green-600 text-white font-bold py-3 shadow-lg hover:bg-green-700 transition-colors">
+                Guardar Reporte
+            </button>
             <button onclick="generarReporte()" class="w-full button bg-blue-600 text-white font-bold py-3 shadow-lg hover:bg-blue-700 transition-colors">
-                Generar Reporte
+                Generar Reporte para Imprimir
             </button>
         </footer>
     </div>
     
+    <!-- Printable Content -->
     <div id="printable-content" class="container bg-white p-6 md:p-10 space-y-8">
-        <div class="flex justify-between items-center">
+        <div class="flex justify-between items-center print:hidden">
             <h2 class="text-2xl font-bold text-green-700">Reporte de Turno</h2>
             <button onclick="cerrarReporte()" class="button bg-gray-600 text-white font-bold py-2 px-4 shadow-lg hover:bg-gray-700 transition-colors">
                 Cerrar
             </button>
         </div>
         <pre id="report-text" class="text-sm font-mono"></pre>
-        <button onclick="imprimirReporte()" class="w-full button bg-gray-600 text-white font-bold py-2 mt-2 shadow-lg hover:bg-gray-700 transition-colors">
+        <button onclick="imprimirReporte()" class="w-full button bg-gray-600 text-white font-bold py-2 mt-2 shadow-lg hover:bg-gray-700 transition-colors print:hidden">
             Imprimir
         </button>
     </div>
 
-    <script>
-        // Surtidores y Depósitos
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('fecha').valueAsDate = new Date();
-            addRow();
-        });
+    <!-- Admin Panel -->
+    <div id="admin-panel" class="admin-panel container bg-white shadow-xl rounded-2xl p-6 md:p-10 space-y-8">
+        <h2 class="text-2xl font-bold text-gray-800">Panel de Administración</h2>
+        <div class="space-y-4">
+            <h3 class="text-xl font-semibold">Agregar/Editar Producto</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input type="text" id="product-name" placeholder="Nombre del producto" class="input-field block w-full border-gray-300 shadow-sm">
+                <input type="number" id="product-price" placeholder="Precio" class="input-field block w-full border-gray-300 shadow-sm">
+                <button onclick="saveProduct()" class="bg-green-600 text-white py-2 rounded-lg font-semibold shadow hover:bg-green-700 transition-colors">Guardar Producto</button>
+            </div>
+            <p class="text-gray-500 text-sm">Ingresa el nombre de un producto existente para actualizar su precio.</p>
+        </div>
+        <div class="table-container bg-white rounded-lg shadow-inner p-4 mt-6">
+            <h3 class="text-xl font-semibold">Productos del Inventario</h3>
+            <table class="w-full text-left table-auto border-separate border-spacing-y-2">
+                <thead class="text-gray-500 uppercase text-xs">
+                    <tr>
+                        <th class="p-2">Producto</th>
+                        <th class="p-2">Precio</th>
+                    </tr>
+                </thead>
+                <tbody id="products-list-body" class="text-gray-900">
+                    <!-- Productos se cargarán aquí -->
+                </tbody>
+            </table>
+        </div>
+        <button onclick="toggleAdminPanel()" class="bg-gray-600 text-white py-2 px-4 rounded-lg font-semibold shadow hover:bg-gray-700 transition-colors">Cerrar Panel</button>
+    </div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        
+        const __app_id = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const __firebase_config = typeof __firebase_config !== 'undefined' ? __firebase_config : '{"apiKey": "YOUR_API_KEY", "authDomain": "YOUR_AUTH_DOMAIN", "projectId": "YOUR_PROJECT_ID", "storageBucket": "YOUR_STORAGE_BUCKET", "messagingSenderId": "YOUR_MESSAGING_SENDER_ID", "appId": "YOUR_APP_ID"}';
+        const __initial_auth_token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
+        let db, auth;
+        let userId;
+        const firebaseConfig = JSON.parse(__firebase_config);
+
+        // Firestore paths
+        const reportsPath = `/artifacts/${__app_id}/users/`;
+        const productsPath = `/artifacts/${__app_id}/public/data/products`;
+
+        async function initFirebaseAndLoadData() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                if (__initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                userId = auth.currentUser.uid;
+                
+                // Set up real-time listener for products
+                onSnapshot(collection(db, productsPath), (snapshot) => {
+                    const productsList = document.getElementById('products-list-body');
+                    const salesList = document.getElementById('sales-list');
+                    productsList.innerHTML = '';
+                    snapshot.forEach(doc => {
+                        const product = doc.data();
+                        const row = `<tr><td class="p-2">${product.name}</td><td class="p-2">$${product.price.toFixed(2)}</td></tr>`;
+                        productsList.innerHTML += row;
+                    });
+                    
+                    // Update sales section product options
+                    // This is a simple approach. A dropdown would be better for a large list.
+                });
+
+                document.getElementById('fecha').valueAsDate = new Date();
+                addRow();
+
+                document.getElementById('fecha').addEventListener('change', loadReportByDate);
+
+            } catch (error) {
+                console.error("Error al inicializar Firebase:", error);
+            }
+        }
+        initFirebaseAndLoadData();
+
+        function toggleAdminPanel() {
+            const mainContent = document.getElementById('main-content');
+            const adminPanel = document.getElementById('admin-panel');
+            if (adminPanel.style.display === 'block') {
+                mainContent.style.display = 'block';
+                adminPanel.style.display = 'none';
+            } else {
+                mainContent.style.display = 'none';
+                adminPanel.style.display = 'block';
+            }
+        }
+        window.toggleAdminPanel = toggleAdminPanel;
+
+        async function saveProduct() {
+            const productName = document.getElementById('product-name').value;
+            const productPrice = parseFloat(document.getElementById('product-price').value);
+
+            if (!productName || isNaN(productPrice)) {
+                console.error("Nombre y precio del producto son obligatorios.");
+                return;
+            }
+
+            try {
+                await setDoc(doc(db, productsPath, productName.toLowerCase()), {
+                    name: productName,
+                    price: productPrice
+                });
+                console.log("Producto guardado con éxito.");
+                document.getElementById('product-name').value = '';
+                document.getElementById('product-price').value = '';
+            } catch (error) {
+                console.error("Error al guardar el producto:", error);
+            }
+        }
+        window.saveProduct = saveProduct;
+
+        async function saveReport() {
+            const fecha = document.getElementById('fecha').value;
+            if (!fecha) {
+                console.error("La fecha es obligatoria para guardar el reporte.");
+                return;
+            }
+
+            const report = {
+                fecha: fecha,
+                turno: document.getElementById('turno').value,
+                encargado: document.getElementById('encargado').value,
+                surtidores: [],
+                ventas: [],
+                depositos: [],
+                totalGNC: parseFloat(document.getElementById('total-general-display').textContent),
+                totalVentas: parseFloat(document.getElementById('total-sales-display').textContent),
+                totalDepositos: parseFloat(document.getElementById('total-depositos-display').textContent),
+                diferencia: parseFloat(document.getElementById('diferencia-display').textContent)
+            };
+            
+            // Collect surtidor data
+            const aforadoresRows = document.querySelectorAll('#aforadores-body tr');
+            aforadoresRows.forEach(row => {
+                report.surtidores.push({
+                    inicio: parseFloat(row.cells[1].querySelector('input').value) || 0,
+                    salida: parseFloat(row.cells[2].querySelector('input').value) || 0,
+                    precio: parseFloat(row.cells[4].querySelector('input').value) || 0,
+                });
+            });
+
+            // Collect sales data
+            const salesRows = document.querySelectorAll('#sales-list .sale-row');
+            salesRows.forEach(row => {
+                report.ventas.push({
+                    productName: row.querySelector('input[placeholder="Nombre del producto"]').value,
+                    quantity: parseInt(row.querySelector('input[placeholder="Cantidad"]').value) || 0,
+                    price: parseFloat(row.querySelector('input[placeholder="Precio"]').value) || 0,
+                });
+            });
+
+            // Collect deposito data
+            const depositosInputs = document.querySelectorAll('.deposito-input');
+            depositosInputs.forEach(input => {
+                report.depositos.push(parseFloat(input.value) || 0);
+            });
+
+            try {
+                const docRef = doc(db, `${reportsPath}${userId}/reports`, fecha);
+                await setDoc(docRef, report);
+                document.getElementById('report-status').textContent = 'Reporte guardado con éxito.';
+            } catch (error) {
+                console.error("Error al guardar el reporte:", error);
+                document.getElementById('report-status').textContent = 'Error al guardar el reporte.';
+            }
+        }
+        window.saveReport = saveReport;
+
+        async function loadReportByDate() {
+            const fecha = document.getElementById('fecha').value;
+            if (!fecha) {
+                document.getElementById('report-status').textContent = 'Seleccione una fecha para cargar el reporte.';
+                return;
+            }
+
+            try {
+                const docRef = doc(db, `${reportsPath}${userId}/reports`, fecha);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const report = docSnap.data();
+                    document.getElementById('turno').value = report.turno;
+                    document.getElementById('encargado').value = report.encargado;
+                    
+                    // Load surtidores
+                    const aforadoresBody = document.getElementById('aforadores-body');
+                    aforadoresBody.innerHTML = '';
+                    report.surtidores.forEach(surtidor => {
+                        addRow();
+                        const newRow = aforadoresBody.lastElementChild;
+                        newRow.cells[1].querySelector('input').value = surtidor.inicio;
+                        newRow.cells[2].querySelector('input').value = surtidor.salida;
+                        newRow.cells[4].querySelector('input').value = surtidor.precio;
+                        calculateTotalAforo(newRow.cells[2].querySelector('input'));
+                    });
+                    
+                    // Load ventas
+                    const salesList = document.getElementById('sales-list');
+                    salesList.innerHTML = '';
+                    report.ventas.forEach(venta => {
+                        addSaleRow(venta.productName, venta.quantity);
+                    });
+                    
+                    // Load depositos
+                    const depositosList = document.getElementById('depositos-list');
+                    depositosList.innerHTML = '';
+                    report.depositos.forEach(deposito => {
+                        addDeposito();
+                        depositosList.lastElementChild.querySelector('input').value = deposito;
+                    });
+                    
+                    calculateTotalDepositos();
+                    calculateFinalTotal();
+
+                    document.getElementById('report-status').textContent = 'Reporte cargado con éxito.';
+                } else {
+                    document.getElementById('report-status').textContent = 'No se encontró un reporte para esta fecha.';
+                    resetForm();
+                }
+            } catch (error) {
+                console.error("Error al cargar el reporte:", error);
+                document.getElementById('report-status').textContent = 'Error al cargar el reporte.';
+                resetForm();
+            }
+        }
+        window.loadReportByDate = loadReportByDate;
+
+        function resetForm() {
+            document.getElementById('turno').value = '';
+            document.getElementById('encargado').value = '';
+            document.getElementById('aforadores-body').innerHTML = '';
+            document.getElementById('sales-list').innerHTML = '';
+            document.getElementById('depositos-list').innerHTML = '';
+            document.getElementById('total-general-display').textContent = '0.00';
+            document.getElementById('total-sales-display').textContent = '0.00';
+            document.getElementById('total-depositos-display').textContent = '0.00';
+            document.getElementById('final-total-display').textContent = '0.00';
+            document.getElementById('diferencia-display').textContent = '0.00';
+            addRow();
+        }
+
+        // --- GNC and Deposits Logic ---
         document.getElementById('aforadores-body').addEventListener('input', (e) => {
             if (e.target.classList.contains('input-aforo')) {
                 calculateTotalAforo(e.target);
@@ -176,6 +450,7 @@
                 totalGeneral += parseFloat(input.value) || 0;
             });
             document.getElementById('total-general-display').textContent = totalGeneral.toFixed(2);
+            calculateFinalTotal();
         }
 
         function addDeposito() {
@@ -206,22 +481,123 @@
                 totalDepositos += parseFloat(input.value) || 0;
             });
             document.getElementById('total-depositos-display').textContent = totalDepositos.toFixed(2);
+            calculateFinalTotal();
         }
 
+        // --- Sales Logic ---
+        function addSaleRow(productName = '', quantity = '') {
+            const salesList = document.getElementById('sales-list');
+            const newSaleRow = document.createElement('div');
+            newSaleRow.classList.add('flex', 'space-x-2', 'sale-row');
+            newSaleRow.innerHTML = `
+                <input type="text" placeholder="Nombre del producto" value="${productName}" class="input-field w-1/2 border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                <input type="number" placeholder="Cantidad" value="${quantity}" class="input-field w-1/4 border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sale-quantity">
+                <input type="number" placeholder="Precio" readonly class="input-field w-1/4 border-gray-300 shadow-sm bg-gray-100">
+                <input type="number" placeholder="Total" readonly class="input-field w-1/4 border-gray-300 shadow-sm bg-gray-100 sale-total">
+                <button onclick="removeSaleRow(this)" class="bg-red-500 text-white px-3 py-1 rounded-lg font-semibold shadow hover:bg-red-600 transition-colors">
+                    -
+                </button>
+            `;
+            salesList.appendChild(newSaleRow);
+
+            const productNameInput = newSaleRow.querySelector('input[placeholder="Nombre del producto"]');
+            productNameInput.addEventListener('change', (e) => updateSalePrice(e.target));
+            
+            const quantityInput = newSaleRow.querySelector('.sale-quantity');
+            quantityInput.addEventListener('input', (e) => calculateSaleTotal(e.target));
+        }
+        window.addSaleRow = addSaleRow;
+
+        async function updateSalePrice(input) {
+            const row = input.closest('.sale-row');
+            const priceInput = row.querySelector('input[placeholder="Precio"]');
+            const productName = input.value.toLowerCase();
+            
+            try {
+                const docSnap = await getDoc(doc(db, productsPath, productName));
+                if (docSnap.exists()) {
+                    const product = docSnap.data();
+                    priceInput.value = product.price.toFixed(2);
+                } else {
+                    priceInput.value = '';
+                }
+            } catch (error) {
+                console.error("Error al obtener el precio del producto:", error);
+                priceInput.value = '';
+            }
+            calculateSaleTotal(row.querySelector('.sale-quantity'));
+        }
+
+        function calculateSaleTotal(input) {
+            const row = input.closest('.sale-row');
+            const quantity = parseInt(row.querySelector('.sale-quantity').value) || 0;
+            const price = parseFloat(row.querySelector('input[placeholder="Precio"]').value) || 0;
+            const totalInput = row.querySelector('.sale-total');
+            totalInput.value = (quantity * price).toFixed(2);
+            calculateTotalSales();
+        }
+
+        function removeSaleRow(button) {
+            const saleRow = button.parentElement;
+            saleRow.remove();
+            calculateTotalSales();
+        }
+        window.removeSaleRow = removeSaleRow;
+
+        function calculateTotalSales() {
+            const totals = document.querySelectorAll('.sale-total');
+            let totalSales = 0;
+            totals.forEach(input => {
+                totalSales += parseFloat(input.value) || 0;
+            });
+            document.getElementById('total-sales-display').textContent = totalSales.toFixed(2);
+            calculateFinalTotal();
+        }
+
+        function calculateFinalTotal() {
+            const totalGNC = parseFloat(document.getElementById('total-general-display').textContent) || 0;
+            const totalSales = parseFloat(document.getElementById('total-sales-display').textContent) || 0;
+            const totalDepositos = parseFloat(document.getElementById('total-depositos-display').textContent) || 0;
+            
+            const totalRecaudado = totalGNC + totalSales;
+            document.getElementById('final-total-display').textContent = totalRecaudado.toFixed(2);
+
+            const diferencia = totalDepositos - totalRecaudado;
+            document.getElementById('diferencia-display').textContent = diferencia.toFixed(2);
+
+            const diferenciaText = document.getElementById('diferencia-text');
+            if (diferencia > 0) {
+                diferenciaText.classList.remove('text-red-500');
+                diferenciaText.classList.add('text-green-600');
+                diferenciaText.innerHTML = `Sobrante: <span id="diferencia-display">${diferencia.toFixed(2)}</span>`;
+            } else if (diferencia < 0) {
+                diferenciaText.classList.remove('text-green-600');
+                diferenciaText.classList.add('text-red-500');
+                diferenciaText.innerHTML = `Faltante: <span id="diferencia-display">${Math.abs(diferencia).toFixed(2)}</span>`;
+            } else {
+                diferenciaText.classList.remove('text-green-600', 'text-red-500');
+                diferenciaText.innerHTML = `Diferencia: <span id="diferencia-display">0.00</span>`;
+            }
+        }
+
+
+        // --- Printable Report Logic ---
         function generarReporte() {
             const fecha = document.getElementById('fecha').value;
             const turno = document.getElementById('turno').value;
             const encargado = document.getElementById('encargado').value;
-            const totalGeneral = document.getElementById('total-general-display').textContent;
+            const totalGNC = document.getElementById('total-general-display').textContent;
+            const totalVentas = document.getElementById('total-sales-display').textContent;
             const totalDepositos = document.getElementById('total-depositos-display').textContent;
-            const ventas = document.getElementById('ventas-input').value;
+            const totalFinal = document.getElementById('final-total-display').textContent;
+            const diferencia = document.getElementById('diferencia-display').textContent;
 
             let texto = `Fecha: ${fecha}\n`;
             texto += `Turno: ${turno}\n`;
             texto += `Encargado: ${encargado}\n`;
             texto += `\n--------------------------------\n\n`;
             
-            texto += `Aforadores\n`;
+            texto += `Surtidores\n`;
             texto += `Surtidor | Inicio | Salida | Metros | Precios | Total\n`;
             texto += `--------------------------------\n`;
             
@@ -236,17 +612,28 @@
                 texto += `   ${surtidor}   | ${inicio} | ${salida} | ${metros} | ${precio} | ${total}\n`;
             });
             
-            texto += `\nTOTAL GENERAL: ${totalGeneral}\n\n`;
+            texto += `\nTOTAL GNC: ${totalGNC}\n\n`;
 
+            texto += `Ventas (Tienda)\n`;
+            const salesRows = document.querySelectorAll('#sales-list .sale-row');
+            salesRows.forEach(row => {
+                const productName = row.querySelector('input[placeholder="Nombre del producto"]').value;
+                const quantity = row.querySelector('input[placeholder="Cantidad"]').value;
+                const total = row.querySelector('.sale-total').value;
+                texto += `${productName} (${quantity}) - $${total}\n`;
+            });
+            texto += `\nTOTAL VENTAS: ${totalVentas}\n\n`;
+            
             texto += `Depósitos\n`;
             const depositos = document.querySelectorAll('.deposito-input');
             depositos.forEach(input => {
-                texto += `${input.value}\n`;
+                texto += `$${input.value}\n`;
             });
             texto += `\n`;
             
-            texto += `TOTAL DEPÓSITOS: ${totalDepositos}\n`;
-            texto += `VENTAS: ${ventas}\n`;
+            texto += `TOTAL DEPÓSITOS: ${totalDepositos}\n\n`;
+            texto += `TOTAL RECAUDADO: ${totalFinal}\n`;
+            texto += `DIFERENCIA: ${diferencia}\n`;
 
             const reportText = document.getElementById('report-text');
             reportText.textContent = texto;
