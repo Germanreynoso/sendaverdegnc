@@ -157,29 +157,49 @@
 
             let metros = salida - inicio;
             let total = 0;
-            if (metros < 0) {
+            
+            if (metros < 0 || isNaN(metros)) {
                 metrosField.value = "";
                 totalField.value = "";
                 metrosField.classList.add("error-input");
                 totalField.classList.add("error-input");
             } else {
+                // Formatear metros con 2 decimales
+                metros = Math.round(metros * 100) / 100;
                 metrosField.value = metros.toFixed(2);
                 metrosField.classList.remove("error-input");
-                total = (metros * precio).toFixed(2);
-                totalField.value = total;
+                
+                // Calcular total y formatear con 2 decimales
+                total = Math.round((metros * precio) * 100) / 100;
+                totalField.value = total.toFixed(2);
                 totalField.classList.remove("error-input");
             }
             calculateTotalGNC();
+            return { metros, total };
         }
 
         function calculateTotalGNC() {
             const totals = document.querySelectorAll('#aforadores-body td input[placeholder="Total"]');
             let totalGNC = 0;
+            
             totals.forEach(input => {
-                totalGNC += parseFloat(input.value) || 0;
+                const valor = parseFloat(input.value);
+                if (!isNaN(valor)) {
+                    totalGNC += valor;
+                }
             });
-            document.getElementById('total-gnc-display').textContent = currency.format(totalGNC);
+            
+            // Redondear a 2 decimales para evitar errores de punto flotante
+            totalGNC = Math.round(totalGNC * 100) / 100;
+            
+            const totalGNCElement = document.getElementById('total-gnc-display');
+            totalGNCElement.textContent = formatCurrency(totalGNC);
+            
+            // Actualizar el valor numérico en un atributo data para fácil acceso
+            totalGNCElement.dataset.value = totalGNC;
+            
             calculateFinalTotal();
+            return totalGNC;
         }
 
         function addDeposito() {
@@ -201,82 +221,228 @@
         }
         window.removeDeposito = removeDeposito;
 
+        // Formatear número a moneda
+        const formatCurrency = (value) => {
+            return new Intl.NumberFormat('es-AR', {
+                style: 'currency',
+                currency: 'ARS',
+                minimumFractionDigits: 2
+            }).format(value);
+        };
+
+        // Convertir texto de moneda a número
+        const parseCurrency = (value) => {
+            if (typeof value === 'string') {
+                // Eliminar símbolos de moneda y espacios, luego convertir a número
+                return parseFloat(value.replace(/[^\d,-]/g, '').replace(',', '.')) || 0;
+            }
+            return parseFloat(value) || 0;
+        };
+
         function calculateTotalVentas() {
-            const totalVentas = parseFloat(document.getElementById('ventas-input').value) || 0;
-            document.getElementById('total-ventas-display').textContent = currency.format(totalVentas);
+            const ventasInput = document.getElementById('ventas-input');
+            const totalVentas = parseCurrency(ventasInput.value);
+            document.getElementById('total-ventas-display').textContent = formatCurrency(totalVentas);
             calculateFinalTotal();
+            return totalVentas;
         }
 
         function calculateTotalDepositos() {
             const depositos = document.querySelectorAll('.deposito-input');
             let totalDepositos = 0;
+            
             depositos.forEach(input => {
-                let val = parseFloat(input.value) || 0;
-                totalDepositos += val;
+                const valor = parseCurrency(input.value);
+                totalDepositos += valor;
             });
-            document.getElementById('total-depositos-display').textContent = currency.format(totalDepositos);
+            
+            const totalDepositosElement = document.getElementById('total-depositos-display');
+            totalDepositosElement.textContent = formatCurrency(totalDepositos);
+            
             calculateFinalTotal();
+            return totalDepositos;
         }
 
         function calculateFinalTotal() {
-            const totalGNC = parseFloat(document.getElementById('total-gnc-display').textContent.replace(/[^\d.-]/g, '')) || 0;
-            const totalVentas = parseFloat(document.getElementById('ventas-input').value) || 0;
-            const totalDepositos = parseFloat(document.getElementById('total-depositos-display').textContent.replace(/[^\d.-]/g, '')) || 0;
+            // Obtener los valores numéricos de los totales
+            const totalGNC = parseCurrency(document.getElementById('total-gnc-display').textContent);
+            const totalVentas = parseCurrency(document.getElementById('ventas-input').value);
+            const totalDepositos = parseCurrency(document.getElementById('total-depositos-display').textContent);
             
-            const totalRecaudado = (totalGNC + totalVentas).toFixed(2);
-            document.getElementById('total-recaudado-display').textContent = currency.format(totalRecaudado);
+            // Calcular total recaudado (GNC + Ventas)
+            const totalRecaudado = totalGNC + totalVentas;
+            document.getElementById('total-recaudado-display').textContent = formatCurrency(totalRecaudado);
             
-            const diferencia = (totalDepositos - totalRecaudado).toFixed(2);
-            const diffEl = document.getElementById('diferencia-display');
-            
+            // Calcular diferencia
+            const diferencia = totalDepositos - totalRecaudado;
             const diferenciaTextEl = document.getElementById('diferencia-text');
+            
+            // Actualizar la interfaz según la diferencia
             if (diferencia > 0) {
-                diferenciaTextEl.classList.remove('text-red-500');
-                diferenciaTextEl.classList.add('text-green-600');
-                diferenciaTextEl.innerHTML = `Sobrante: <span id="diferencia-display">${currency.format(diferencia)}</span>`;
+                diferenciaTextEl.className = 'font-bold text-green-600';
+                diferenciaTextEl.innerHTML = `Sobrante: <span id="diferencia-display">${formatCurrency(diferencia)}</span>`;
             } else if (diferencia < 0) {
-                diferenciaTextEl.classList.remove('text-green-600');
-                diferenciaTextEl.classList.add('text-red-500');
-                diferenciaTextEl.innerHTML = `Faltante: <span id="diferencia-display">${currency.format(Math.abs(diferencia))}</span>`;
+                diferenciaTextEl.className = 'font-bold text-red-500';
+                diferenciaTextEl.innerHTML = `Faltante: <span id="diferencia-display">${formatCurrency(Math.abs(diferencia))}</span>`;
             } else {
-                diferenciaTextEl.classList.remove('text-green-600', 'text-red-500');
-                diferenciaTextEl.innerHTML = `Diferencia: <span id="diferencia-display">${currency.format(0)}</span>`;
+                diferenciaTextEl.className = 'font-bold';
+                diferenciaTextEl.innerHTML = `Diferencia: <span id="diferencia-display">${formatCurrency(0)}</span>`;
             }
         }
 
         function generarReporte() {
-            const fecha = document.getElementById('fecha').value;
-            const turno = document.getElementById('turno').value;
-            const encargado = document.getElementById('encargado').value;
+            // Obtener valores del formulario
+            const fecha = document.getElementById('fecha').value || 'No especificada';
+            const turno = document.getElementById('turno').value || 'No especificado';
+            const encargado = document.getElementById('encargado').value || 'No especificado';
+            
+            // Obtener totales formateados
             const totalGNC = document.getElementById('total-gnc-display').textContent;
+            const totalVentas = document.getElementById('total-ventas-display').textContent;
             const totalDepositos = document.getElementById('total-depositos-display').textContent;
             const totalRecaudado = document.getElementById('total-recaudado-display').textContent;
-            const diferenciaText = document.getElementById('diferencia-text').textContent.trim();
-            const ventas = document.getElementById('ventas-input').value;
+            const diferenciaText = document.getElementById('diferencia-text').innerHTML;
+            
+            // Crear encabezado del reporte
+            let reporteHTML = `
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-green-700 mb-2">Reporte de Turno</h2>
+                    <p><strong>Fecha:</strong> ${fecha}</p>
+                    <p><strong>Turno:</strong> ${turno}</p>
+                    <p><strong>Encargado:</strong> ${encargado}</p>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="text-xl font-semibold mb-2">Detalle de Aforadores</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full border border-gray-200">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="border p-2">Surtidor</th>
+                                    <th class="border p-2">Inicio</th>
+                                    <th class="border p-2">Salida</th>
+                                    <th class="border p-2">Metros</th>
+                                    <th class="border p-2">Precio</th>
+                                    <th class="border p-2">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reporte-aforadores">
+            `;
 
-            let texto = `Fecha: ${fecha}\nTurno: ${turno}\nEncargado: ${encargado}\n\n--------------------------------\n\nAforadores\nSurtidor | Inicio | Salida | Metros | Precio | Total\n--------------------------------\n`;
-
+            // Agregar filas de aforadores
             const rows = document.querySelectorAll('#aforadores-body tr');
             rows.forEach((row, index) => {
-                const surtidor = index + 1;
-                const inicio = (row.cells[1].querySelector('input').value || '0').padStart(6, ' ');
-                const salida = (row.cells[2].querySelector('input').value || '0').padStart(6, ' ');
-                const metros = (row.cells[3].querySelector('input').value || '0').padStart(6, ' ');
-                const precio = (row.cells[4].querySelector('input').value || '0').padStart(7, ' ');
-                const total = (row.cells[5].querySelector('input').value || '0').padStart(10, ' ');
-                texto += `  ${surtidor}  | ${inicio} | ${salida} | ${metros} | ${precio} | ${total}\n`;
+                const inicio = row.cells[1].querySelector('input').value || '0.00';
+                const salida = row.cells[2].querySelector('input').value || '0.00';
+                const metros = row.cells[3].querySelector('input').value || '0.00';
+                const precio = row.cells[4].querySelector('input').value || '0.00';
+                const total = row.cells[5].querySelector('input').value || '0.00';
+                
+                reporteHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="border p-2 text-center">${index + 1}</td>
+                        <td class="border p-2 text-right">${inicio}</td>
+                        <td class="border p-2 text-right">${salida}</td>
+                        <td class="border p-2 text-right">${metros}</td>
+                        <td class="border p-2 text-right">${parseFloat(precio).toFixed(2)}</td>
+                        <td class="border p-2 text-right font-medium">${formatCurrency(parseFloat(total))}</td>
+                    </tr>
+                `;
             });
 
-            texto += `\nTOTAL GNC: ${totalGNC}\nTOTAL VENTAS: ${currency.format(parseFloat(ventas) || 0)}\n\nTOTAL RECAUDADO: ${totalRecaudado}\n\nDepósitos:\n`;
+            // Cerrar tabla de aforadores y agregar resumen
+            reporteHTML += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold mb-3">Resumen Financiero</h3>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span>Total GNC:</span>
+                                <span class="font-medium">${totalGNC}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Total Ventas:</span>
+                                <span class="font-medium">${totalVentas}</span>
+                            </div>
+                            <div class="border-t border-gray-300 my-2"></div>
+                            <div class="flex justify-between text-lg font-semibold">
+                                <span>Total Recaudado:</span>
+                                <span>${totalRecaudado}</span>
+                            </div>
+                            <div class="flex justify-between text-lg font-semibold">
+                                <span>Total Depósitos:</span>
+                                <span>${totalDepositos}</span>
+                            </div>
+                            <div class="border-t-2 border-gray-400 my-2"></div>
+                            <div id="diferencia-reporte" class="text-lg font-bold text-right">
+                                ${diferenciaText}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-lg font-semibold">Depósitos</h3>
+                        </div>
+                        <div id="reporte-depositos" class="space-y-2">
+            `;
+
+            // Agregar lista de depósitos
             const depositos = document.querySelectorAll('.deposito-input');
-            depositos.forEach(input => {
-                if(input.value) texto += `  ${currency.format(parseFloat(input.value) || 0)}\n`;
-            });
-            texto += `\nTOTAL DEPÓSITOS: ${totalDepositos}\n${diferenciaText}\n`;
+            if (depositos.length > 0) {
+                depositos.forEach((deposito, index) => {
+                    const valor = parseFloat(deposito.value) || 0;
+                    if (valor > 0) {
+                        reporteHTML += `
+                            <div class="flex justify-between items-center p-2 bg-white rounded border">
+                                <span>Depósito ${index + 1}:</span>
+                                <span class="font-medium">${formatCurrency(valor)}</span>
+                            </div>
+                        `;
+                    }
+                });
+            } else {
+                reporteHTML += '<p class="text-gray-500 italic">No se registraron depósitos</p>';
+            }
 
-            document.getElementById('report-text').textContent = texto;
+            // Cerrar sección de depósitos y el reporte
+            reporteHTML += `
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center text-sm text-gray-500 mt-8">
+                    <p>Reporte generado el ${new Date().toLocaleString()}</p>
+                </div>
+            `;
+
+            // Mostrar el reporte
+            document.getElementById('printable-content').innerHTML = reporteHTML;
             document.getElementById('main-content').style.display = 'none';
             document.getElementById('printable-content').style.display = 'block';
+            
+            // Agregar botón de impresión
+            const printButton = document.createElement('button');
+            printButton.textContent = 'Imprimir Reporte';
+            printButton.className = 'mt-6 bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold shadow hover:bg-blue-700 transition-colors';
+            printButton.onclick = imprimirReporte;
+            
+            const closeButton = document.createElement('button');
+            closeButton.textContent = 'Cerrar';
+            closeButton.className = 'mt-6 ml-4 bg-gray-600 text-white px-6 py-2 rounded-lg font-semibold shadow hover:bg-gray-700 transition-colors';
+            closeButton.onclick = cerrarReporte;
+            
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = 'flex justify-center space-x-4 mt-6 print:hidden';
+            buttonContainer.appendChild(printButton);
+            buttonContainer.appendChild(closeButton);
+            
+            document.getElementById('printable-content').appendChild(buttonContainer);
         }
 
         function imprimirReporte() { window.print(); }
