@@ -3,453 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Senda Verde - Gestión de GNC</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="css/styles.css">
+    <title>GIF</title>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .container { max-width: 800px; }
-        .input-field, .button { border-radius: 0.5rem; }
-        .table-container { overflow-x: auto; }
-        #printable-content { display: none; }
-        .admin-panel { display: none; }
-        @media print {
-            body > *:not(#printable-content) { display: none !important; }
-            #printable-content { display: block; margin: 0; padding: 0; }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+            overflow: hidden;
         }
-        .error-input { border-color: red !important; background-color: #ffe5e5 !important; }
+        .gif-container {
+            width: 100%;
+            max-width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .tenor-gif-embed {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            max-height: 100%;
+        }
+        .call-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #750a0f; /* Color de WhatsApp */
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 12px 24px;
+            height: auto;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        .call-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
     </style>
 </head>
-<body class="bg-gray-100 flex justify-center items-start min-h-screen py-8 px-4">
-    <!-- Main Content for the user -->
-    <div id="main-content" class="container bg-white shadow-xl rounded-2xl p-6 md:p-10 space-y-8">
-        <header class="text-center space-y-2">
-            <h1 class="text-4xl font-bold text-green-700">SENDA VERDE</h1>
-            <p class="text-lg text-gray-600">Gestión de Turnos GNC</p>
-        </header>
-
-        <section id="form-section" class="space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="col-span-1">
-                    <label for="fecha" class="block text-sm font-medium text-gray-700">Fecha</label>
-                    <input type="date" id="fecha" class="input-field mt-1 block w-full border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
-                </div>
-                <div class="col-span-1">
-                    <label for="turno" class="block text-sm font-medium text-gray-700">Turno</label>
-                    <input type="text" id="turno" placeholder="Ej: Mañana" class="input-field mt-1 block w-full border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
-                </div>
-                <div class="col-span-1">
-                    <label for="encargado" class="block text-sm font-medium text-gray-700">Encargado</label>
-                    <input type="text" id="encargado" placeholder="Ej: Quiroz Juan" class="input-field mt-1 block w-full border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
-                </div>
-            </div>
-
-            <div class="flex justify-between items-center py-2">
-                <h3 class="text-xl font-semibold text-gray-800">Surtidores</h3>
-                <button onclick="addRow()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold shadow hover:bg-green-700 transition-colors">
-                    + Agregar surtidor
-                </button>
-            </div>
-
-            <div class="table-container bg-white rounded-lg shadow-inner p-4">
-                <table id="aforadores-table" class="w-full text-left table-auto border-separate border-spacing-y-2">
-                    <thead class="text-gray-500 uppercase text-xs">
-                        <tr>
-                            <th class="p-2">Surtidor</th>
-                            <th class="p-2">Inicio</th>
-                            <th class="p-2">Salida</th>
-                            <th class="p-2">Metros</th>
-                            <th class="p-2">Precio</th>
-                            <th class="p-2">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody id="aforadores-body" class="text-gray-900"></tbody>
-                </table>
-            </div>
-            
-            <div class="flex justify-between items-center py-4">
-                <div class="font-bold text-gray-800 text-lg">TOTAL GNC: <span id="total-gnc-display">$0,00</span></div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="space-y-4">
-                    <h3 class="text-xl font-semibold text-gray-800">Ventas</h3>
-                    <input type="number" id="ventas-input" placeholder="Total de ventas" class="input-field block w-full border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
-                    <p class="font-bold text-gray-800 text-lg mt-4">TOTAL VENTAS: <span id="total-ventas-display">$0,00</span></p>
-                </div>
-                <div class="space-y-4">
-                    <h3 class="text-xl font-semibold text-gray-800">Depósitos</h3>
-                    <div id="depositos-list" class="space-y-2"></div>
-                    <button onclick="addDeposito()" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-semibold shadow hover:bg-gray-300 transition-colors w-full">+ Agregar depósito</button>
-                    <p class="font-bold text-gray-800 text-lg mt-4">TOTAL DEPÓSITOS: <span id="total-depositos-display">$0,00</span></p>
-                </div>
-            </div>
-
-            <div class="mt-8 space-y-4 text-center">
-                <div class="font-bold text-xl text-gray-800">
-                    <span id="total-recaudado-text">Total Recaudado: </span> <span id="total-recaudado-display">$0,00</span>
-                </div>
-                <div class="font-bold text-xl" id="diferencia-text">
-                    Diferencia: <span id="diferencia-display">$0,00</span>
-                </div>
-            </div>
-            
-        </section>
-
-        <footer class="mt-8 space-y-4">
-            <button onclick="generarReporte()" class="w-full button bg-blue-600 text-white font-bold py-3 shadow-lg hover:bg-blue-700 transition-colors">
-                Generar Reporte
-            </button>
-        </footer>
-    </div>
-    
-    <div id="printable-content" class="container bg-white p-6 md:p-10 space-y-8">
-        <div class="flex justify-between items-center print:hidden">
-            <h2 class="text-2xl font-bold text-green-700">Reporte de Turno</h2>
-            <button onclick="cerrarReporte()" class="button bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-lg hover:bg-gray-700 transition-colors">
-                Cerrar
-            </button>
+<body>
+    <div class="gif-container">
+        <div class="tenor-gif-embed" data-postid="15722832" data-share-method="host" data-aspect-ratio="0.540625" data-width="100%">
+            <a href="https://tenor.com/view/jesus-dancing-simpsons-homer-yisus-gif-15722832">Jesus Dancing GIF</a>
+            <a href="https://tenor.com/search/jesus-gifs">Jesus GIFs</a>
         </div>
-        <pre id="report-text" class="text-sm font-mono"></pre>
-        <button onclick="imprimirReporte()" class="w-full button bg-gray-600 text-white font-bold py-2 mt-2 rounded-lg shadow-lg hover:bg-gray-700 transition-colors print:hidden">
-            Imprimir
+        <script type="text/javascript" async src="https://tenor.com/embed.js"></script>
+        
+        <button class="call-button" onclick="window.location.href='tel:+5491234567890'" title="Llamar a soporte">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+            </svg>
+            <span>Llamar a travestis</span>
         </button>
     </div>
-
-    <script>
-        const currency = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('fecha').valueAsDate = new Date();
-            addRow();
-            document.getElementById('ventas-input').addEventListener('input', calculateTotalVentas);
-        });
-
-        function addRow() {
-            const tableBody = document.getElementById('aforadores-body');
-            const rowCount = tableBody.rows.length + 1;
-            const newRow = document.createElement('tr');
-            newRow.classList.add('bg-white', 'hover:bg-gray-50', 'transition-colors');
-            newRow.innerHTML = `
-                <td class="p-2">${rowCount}</td>
-                <td class="p-2"><input type="number" placeholder="Inicio" class="input-aforo w-20 sm:w-28 border-b-2 border-gray-300 focus:border-green-500 focus:outline-none"></td>
-                <td class="p-2"><input type="number" placeholder="Salida" class="input-aforo w-20 sm:w-28 border-b-2 border-gray-300 focus:border-green-500 focus:ring-green-500"></td>
-                <td class="p-2"><input type="number" placeholder="Metros" readonly class="w-20 sm:w-28 border-b-2 border-gray-300 focus:outline-none bg-gray-100"></td>
-                <td class="p-2"><input type="number" step="0.01" placeholder="Precio" class="input-aforo w-20 sm:w-28 border-b-2 border-gray-300 focus:border-green-500 focus:ring-green-500"></td>
-                <td class="p-2"><input type="number" placeholder="Total" readonly class="w-20 sm:w-28 border-b-2 border-gray-300 focus:outline-none bg-gray-100"></td>
-            `;
-            tableBody.appendChild(newRow);
-            const inputs = newRow.querySelectorAll('input.input-aforo');
-            inputs.forEach(input => {
-                input.addEventListener('input', () => calculateTotalAforo(input));
-            });
-        }
-        window.addRow = addRow;
-
-        function calculateTotalAforo(input) {
-            const row = input.closest('tr');
-            const inicio = parseFloat(row.cells[1].querySelector('input').value) || 0;
-            const salida = parseFloat(row.cells[2].querySelector('input').value) || 0;
-            const precio = parseFloat(row.cells[4].querySelector('input').value) || 0;
-
-            const metrosField = row.cells[3].querySelector('input');
-            const totalField = row.cells[5].querySelector('input');
-
-            let metros = salida - inicio;
-            let total = 0;
-            
-            if (metros < 0 || isNaN(metros)) {
-                metrosField.value = "";
-                totalField.value = "";
-                metrosField.classList.add("error-input");
-                totalField.classList.add("error-input");
-            } else {
-                // Formatear metros con 2 decimales
-                metros = Math.round(metros * 100) / 100;
-                metrosField.value = metros.toFixed(2);
-                metrosField.classList.remove("error-input");
-                
-                // Calcular total y formatear con 2 decimales
-                total = Math.round((metros * precio) * 100) / 100;
-                totalField.value = total.toFixed(2);
-                totalField.classList.remove("error-input");
-            }
-            calculateTotalGNC();
-            return { metros, total };
-        }
-
-        function calculateTotalGNC() {
-            const totals = document.querySelectorAll('#aforadores-body td input[placeholder="Total"]');
-            let totalGNC = 0;
-            
-            totals.forEach(input => {
-                const valor = parseFloat(input.value);
-                if (!isNaN(valor)) {
-                    totalGNC += valor;
-                }
-            });
-            
-            // Redondear a 2 decimales para evitar errores de punto flotante
-            totalGNC = Math.round(totalGNC * 100) / 100;
-            
-            const totalGNCElement = document.getElementById('total-gnc-display');
-            totalGNCElement.textContent = formatCurrency(totalGNC);
-            
-            // Actualizar el valor numérico en un atributo data para fácil acceso
-            totalGNCElement.dataset.value = totalGNC;
-            
-            calculateFinalTotal();
-            return totalGNC;
-        }
-
-        function addDeposito() {
-            const depositosList = document.getElementById('depositos-list');
-            const newDeposito = document.createElement('div');
-            newDeposito.classList.add('flex', 'space-x-2', 'deposito-row');
-            newDeposito.innerHTML = `
-                <input type="number" min="0" placeholder="Monto del depósito" class="input-field block w-full border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 deposito-input">
-                <button onclick="removeDeposito(this)" class="bg-red-500 text-white px-3 py-1 rounded-lg font-semibold shadow hover:bg-red-600 transition-colors">-</button>
-            `;
-            depositosList.appendChild(newDeposito);
-            newDeposito.querySelector("input").addEventListener("input", calculateTotalDepositos);
-        }
-        window.addDeposito = addDeposito;
-
-        function removeDeposito(button) {
-            button.parentElement.remove();
-            calculateTotalDepositos();
-        }
-        window.removeDeposito = removeDeposito;
-
-        // Formatear número a moneda
-        const formatCurrency = (value) => {
-            return new Intl.NumberFormat('es-AR', {
-                style: 'currency',
-                currency: 'ARS',
-                minimumFractionDigits: 2
-            }).format(value);
-        };
-
-        // Convertir texto de moneda a número
-        const parseCurrency = (value) => {
-            if (typeof value === 'string') {
-                // Eliminar símbolos de moneda y espacios, luego convertir a número
-                return parseFloat(value.replace(/[^\d,-]/g, '').replace(',', '.')) || 0;
-            }
-            return parseFloat(value) || 0;
-        };
-
-        function calculateTotalVentas() {
-            const ventasInput = document.getElementById('ventas-input');
-            const totalVentas = parseCurrency(ventasInput.value);
-            document.getElementById('total-ventas-display').textContent = formatCurrency(totalVentas);
-            calculateFinalTotal();
-            return totalVentas;
-        }
-
-        function calculateTotalDepositos() {
-            const depositos = document.querySelectorAll('.deposito-input');
-            let totalDepositos = 0;
-            
-            depositos.forEach(input => {
-                const valor = parseCurrency(input.value);
-                totalDepositos += valor;
-            });
-            
-            const totalDepositosElement = document.getElementById('total-depositos-display');
-            totalDepositosElement.textContent = formatCurrency(totalDepositos);
-            
-            calculateFinalTotal();
-            return totalDepositos;
-        }
-
-        function calculateFinalTotal() {
-            // Obtener los valores numéricos de los totales
-            const totalGNC = parseCurrency(document.getElementById('total-gnc-display').textContent);
-            const totalVentas = parseCurrency(document.getElementById('ventas-input').value);
-            const totalDepositos = parseCurrency(document.getElementById('total-depositos-display').textContent);
-            
-            // Calcular total recaudado (GNC + Ventas)
-            const totalRecaudado = totalGNC + totalVentas;
-            document.getElementById('total-recaudado-display').textContent = formatCurrency(totalRecaudado);
-            
-            // Calcular diferencia
-            const diferencia = totalDepositos - totalRecaudado;
-            const diferenciaTextEl = document.getElementById('diferencia-text');
-            
-            // Actualizar la interfaz según la diferencia
-            if (diferencia > 0) {
-                diferenciaTextEl.className = 'font-bold text-green-600';
-                diferenciaTextEl.innerHTML = `Sobrante: <span id="diferencia-display">${formatCurrency(diferencia)}</span>`;
-            } else if (diferencia < 0) {
-                diferenciaTextEl.className = 'font-bold text-red-500';
-                diferenciaTextEl.innerHTML = `Faltante: <span id="diferencia-display">${formatCurrency(Math.abs(diferencia))}</span>`;
-            } else {
-                diferenciaTextEl.className = 'font-bold';
-                diferenciaTextEl.innerHTML = `Diferencia: <span id="diferencia-display">${formatCurrency(0)}</span>`;
-            }
-        }
-
-        function generarReporte() {
-            // Obtener valores del formulario
-            const fecha = document.getElementById('fecha').value || 'No especificada';
-            const turno = document.getElementById('turno').value || 'No especificado';
-            const encargado = document.getElementById('encargado').value || 'No especificado';
-            
-            // Obtener totales formateados
-            const totalGNC = document.getElementById('total-gnc-display').textContent;
-            const totalVentas = document.getElementById('total-ventas-display').textContent;
-            const totalDepositos = document.getElementById('total-depositos-display').textContent;
-            const totalRecaudado = document.getElementById('total-recaudado-display').textContent;
-            const diferenciaText = document.getElementById('diferencia-text').innerHTML;
-            
-            // Crear encabezado del reporte
-            let reporteHTML = `
-                <div class="mb-6">
-                    <h2 class="text-2xl font-bold text-green-700 mb-2">Reporte de Turno</h2>
-                    <p><strong>Fecha:</strong> ${fecha}</p>
-                    <p><strong>Turno:</strong> ${turno}</p>
-                    <p><strong>Encargado:</strong> ${encargado}</p>
-                </div>
-                
-                <div class="mb-6">
-                    <h3 class="text-xl font-semibold mb-2">Detalle de Aforadores</h3>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full border border-gray-200">
-                            <thead>
-                                <tr class="bg-gray-100">
-                                    <th class="border p-2">Surtidor</th>
-                                    <th class="border p-2">Inicio</th>
-                                    <th class="border p-2">Salida</th>
-                                    <th class="border p-2">Metros</th>
-                                    <th class="border p-2">Precio</th>
-                                    <th class="border p-2">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody id="reporte-aforadores">
-            `;
-
-            // Agregar filas de aforadores
-            const rows = document.querySelectorAll('#aforadores-body tr');
-            rows.forEach((row, index) => {
-                const inicio = row.cells[1].querySelector('input').value || '0.00';
-                const salida = row.cells[2].querySelector('input').value || '0.00';
-                const metros = row.cells[3].querySelector('input').value || '0.00';
-                const precio = row.cells[4].querySelector('input').value || '0.00';
-                const total = row.cells[5].querySelector('input').value || '0.00';
-                
-                reporteHTML += `
-                    <tr class="hover:bg-gray-50">
-                        <td class="border p-2 text-center">${index + 1}</td>
-                        <td class="border p-2 text-right">${inicio}</td>
-                        <td class="border p-2 text-right">${salida}</td>
-                        <td class="border p-2 text-right">${metros}</td>
-                        <td class="border p-2 text-right">${parseFloat(precio).toFixed(2)}</td>
-                        <td class="border p-2 text-right font-medium">${formatCurrency(parseFloat(total))}</td>
-                    </tr>
-                `;
-            });
-
-            // Cerrar tabla de aforadores y agregar resumen
-            reporteHTML += `
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <h3 class="text-lg font-semibold mb-3">Resumen Financiero</h3>
-                        <div class="space-y-2">
-                            <div class="flex justify-between">
-                                <span>Total GNC:</span>
-                                <span class="font-medium">${totalGNC}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span>Total Ventas:</span>
-                                <span class="font-medium">${totalVentas}</span>
-                            </div>
-                            <div class="border-t border-gray-300 my-2"></div>
-                            <div class="flex justify-between text-lg font-semibold">
-                                <span>Total Recaudado:</span>
-                                <span>${totalRecaudado}</span>
-                            </div>
-                            <div class="flex justify-between text-lg font-semibold">
-                                <span>Total Depósitos:</span>
-                                <span>${totalDepositos}</span>
-                            </div>
-                            <div class="border-t-2 border-gray-400 my-2"></div>
-                            <div id="diferencia-reporte" class="text-lg font-bold text-right">
-                                ${diferenciaText}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <div class="flex justify-between items-center mb-3">
-                            <h3 class="text-lg font-semibold">Depósitos</h3>
-                        </div>
-                        <div id="reporte-depositos" class="space-y-2">
-            `;
-
-            // Agregar lista de depósitos
-            const depositos = document.querySelectorAll('.deposito-input');
-            if (depositos.length > 0) {
-                depositos.forEach((deposito, index) => {
-                    const valor = parseFloat(deposito.value) || 0;
-                    if (valor > 0) {
-                        reporteHTML += `
-                            <div class="flex justify-between items-center p-2 bg-white rounded border">
-                                <span>Depósito ${index + 1}:</span>
-                                <span class="font-medium">${formatCurrency(valor)}</span>
-                            </div>
-                        `;
-                    }
-                });
-            } else {
-                reporteHTML += '<p class="text-gray-500 italic">No se registraron depósitos</p>';
-            }
-
-            // Cerrar sección de depósitos y el reporte
-            reporteHTML += `
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="text-center text-sm text-gray-500 mt-8">
-                    <p>Reporte generado el ${new Date().toLocaleString()}</p>
-                </div>
-            `;
-
-            // Mostrar el reporte
-            document.getElementById('printable-content').innerHTML = reporteHTML;
-            document.getElementById('main-content').style.display = 'none';
-            document.getElementById('printable-content').style.display = 'block';
-            
-            // Agregar botón de impresión
-            const printButton = document.createElement('button');
-            printButton.textContent = 'Imprimir Reporte';
-            printButton.className = 'mt-6 bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold shadow hover:bg-blue-700 transition-colors';
-            printButton.onclick = imprimirReporte;
-            
-            const closeButton = document.createElement('button');
-            closeButton.textContent = 'Cerrar';
-            closeButton.className = 'mt-6 ml-4 bg-gray-600 text-white px-6 py-2 rounded-lg font-semibold shadow hover:bg-gray-700 transition-colors';
-            closeButton.onclick = cerrarReporte;
-            
-            const buttonContainer = document.createElement('div');
-            buttonContainer.className = 'flex justify-center space-x-4 mt-6 print:hidden';
-            buttonContainer.appendChild(printButton);
-            buttonContainer.appendChild(closeButton);
-            
-            document.getElementById('printable-content').appendChild(buttonContainer);
-        }
-
-        function imprimirReporte() { window.print(); }
-        function cerrarReporte() {
-            document.getElementById('main-content').style.display = 'block';
-            document.getElementById('printable-content').style.display = 'none';
-        }
-    </script>
 </body>
 </html>
