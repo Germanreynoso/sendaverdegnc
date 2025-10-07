@@ -1,76 +1,78 @@
 <!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GIF</title>
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #000;
-            overflow: hidden;
-        }
-        .gif-container {
-            width: 100%;
-            max-width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .tenor-gif-embed {
-            width: 100%;
-            max-width: 100%;
-            height: auto;
-            max-height: 100%;
-        }
-        .call-button {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: #750a0f; /* Color de WhatsApp */
-            color: white;
-            border: none;
-            border-radius: 30px;
-            padding: 12px 24px;
-            height: auto;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
-            z-index: 1000;
-            transition: all 0.3s ease;
-        }
-        .call-button:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-        }
-    </style>
-</head>
-<body>
-    <div class="gif-container">
-        <div class="tenor-gif-embed" data-postid="15722832" data-share-method="host" data-aspect-ratio="0.540625" data-width="100%">
-            <a href="https://tenor.com/view/jesus-dancing-simpsons-homer-yisus-gif-15722832">Jesus Dancing GIF</a>
-            <a href="https://tenor.com/search/jesus-gifs">Jesus GIFs</a>
-        </div>
-        <script type="text/javascript" async src="https://tenor.com/embed.js"></script>
-        
-        <button class="call-button" onclick="window.location.href='tel:+5491234567890'" title="Llamar a soporte">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-            </svg>
-            <span></span>
-        </button>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="style/style.css" />
+    <script src="index.js" defer></script>
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon.ico" />
+    <link
+      href="https://www.dafontfree.net/embed/Y29vcGVyLWJsYWNrLXJlZ3VsYXImZGF0YS8yNC9jLzExOTYxOC9DT09QQkwudHRm"
+      rel="stylesheet"
+      type="text/css"
+    />
+
+    <title>Página de Homero</title>
+  </head>
+  <body>
+    <div class="cortina-izq cortina">
+      <img src="assets/izq.png" alt="" class=""/>
     </div>
-</body>
+
+    <h1 class="title">Página de Homero</h1>
+
+    <div class="parent">
+      <div class="div1"><img src="assets/jesus.gif" width="270px" /></div>
+      <div class="div2"><img src="assets/reloj.gif" width="80px" /></div>
+      <div class="div3"><img src="assets/worm.gif" width="100px" /></div>
+      <div class="div4"><img src="assets/toaster.gif" width="90px" /></div>
+      <div class="div5"><img src="assets/mouth.gif" width="130px" /></div>
+      <div class="div6"><img src="assets/toaster.gif" width="125px" /></div>
+      <div class="div7"><img src="assets/ring.gif" width="70px" /></div>
+      <div class="div8"><img src="assets/reloj.gif" width="120px" /></div>
+      <div class="div9"><img src="assets/worm.gif" width="100px" /></div>
+      <div class="div10"><img src="assets/reloj.gif" width="70px" /></div>
+      <div class="div11"><img src="assets/toaster.gif" width="120px" /></div>
+      <div class="div12"><img src="assets/ring.gif" width="100px" /></div>
+      <div class="div13"><img src="assets/mouth.gif" width="130px" /></div>
+      <div class="div14"><img src="assets/worm.gif" width="100px" /></div>
+      <div class="div15"><img src="assets/toaster.gif" width="70px" /></div>
+    </div>
+
+    <div class="parent-mobile">
+      <section>
+        <div class="div2-mobile div-mobile"><img src="assets/reloj.gif" /></div>
+        <div class="div3-mobile div-mobile"><img src="assets/mouth.gif" /></div>
+        <div class="div4-mobile div-mobile"><img src="assets/ring.gif" /></div>
+        <div class="div5-mobile div-mobile"><img src="assets/worm.gif" /></div>
+        <div class="div6-mobile div-mobile"><img src="assets/mouth.gif" /></div>
+      </section>
+      <section>
+        <div class="div1-mobile div-mobile"><img src="assets/jesus.gif" /></div>
+      </section>
+      <section>
+        <div class="div7-mobile div-mobile"><img src="assets/reloj.gif" /></div>
+        <div class="div8-mobile div-mobile"><img src="assets/ring.gif" /></div>
+        <div class="div9-mobile div-mobile">
+          <img src="assets/toaster.gif" />
+        </div>
+        <div class="div10-mobile div-mobile"><img src="assets/worm.gif" /></div>
+        <div class="div11-mobile div-mobile"><img src="assets/ring.gif" /></div>
+      </section>
+    </div>
+
+    <div class="cortina-der cortina">
+      <img src="assets/der.png" alt="" />
+    </div>
+
+
+    <button id="mutedBtn">
+      <img src="assets/muted.png" alt="" class="muted" />
+    </button>
+    
+    >
+  </body>
 </html>
